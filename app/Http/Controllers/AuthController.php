@@ -74,12 +74,31 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('api-token')->plainTextToken;
+            // Prepare permissions (example, adjust as needed)
+            $permissions = [
+                'view_dashboard' => true, // Set based on your logic
+                'manage_branches' => false // Set based on your logic
+            ];
 
-        return response()->json([
-            'message' => 'Login successful',
-            'user' => $user,
-            'token' => $token,
-        ], Response::HTTP_OK);
+            $admin = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone ?? null,
+                'is_super_admin' => $user->is_admin ?? false,
+                'permissions' => $permissions,
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Login successful',
+                'data' => [
+                    'admin' => $admin,
+                    'token' => $token,
+                ],
+            ], Response::HTTP_OK);
     }
 
     /**

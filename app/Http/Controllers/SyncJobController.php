@@ -69,6 +69,7 @@ class SyncJobController extends Controller
         }
 
         $query = SyncJob::query();
+        
 
         if ($request->has('branch_id')) {
             $validator = Validator::make($request->all(), [
