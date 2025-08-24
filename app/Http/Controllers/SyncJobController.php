@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\BranchResource;
-use App\Http\Resources\SyncJobResource;
 use App\Models\Branch;
 use App\Models\SyncJob;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Http\Resources\BranchResource;
+use App\Http\Resources\SyncJobResource;
 use Illuminate\Support\Facades\Validator;
 
 class SyncJobController extends Controller
@@ -126,6 +127,7 @@ class SyncJobController extends Controller
 
         $branch = Branch::create([
             'name' => $request->input('name'),
+            'token' => Str::random(32),
             'is_active' => true,
         ]);
 
