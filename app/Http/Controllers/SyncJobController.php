@@ -108,7 +108,6 @@ class SyncJobController extends Controller
 
     /**
      * Create a new branch.
-     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -117,6 +116,10 @@ class SyncJobController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:branches',
             'is_active' => 'boolean|in:0,1',
+            'manager_email' => 'required|email|max:255',
+            'manager_password' => 'required|string|min:6',
+            'admin_email' => 'required|email|max:255',
+            'admin_password' => 'required|string|min:6',
         ]);
 
         if ($validator->fails()) {
@@ -129,6 +132,10 @@ class SyncJobController extends Controller
             'name' => $request->input('name'),
             'token' => Str::random(32),
             'is_active' => true,
+            'manager_email' => $request->input('manager_email'),
+            'manager_password' => $request->input('manager_password'),
+            'admin_email' => $request->input('admin_email'),
+            'admin_password' => $request->input('admin_password'),
         ]);
 
         return response()->json([
@@ -144,7 +151,8 @@ class SyncJobController extends Controller
      */
     public function listBranches()
     {
-        $branches = Branch::select('id', 'name')->get();
+        // $branches = Branch::select('id', 'name')->get()
+        $branches = Branch::all();
 
         return response()->json([
             'message' => 'Branches retrieved successfully',

@@ -14,6 +14,10 @@ class BranchResource extends JsonResource
                 'name' => $this->name,
                 // 'is_active' => $this->is_active,
                 'token' => $this->token,
+                'manager_email' => $this->manager_email,
+                'manager_password' => $this->manager_password,
+                'admin_email' => $this->admin_email,
+                'admin_password' => $this->admin_password,
                 'created_at' => $this->created_at,
                 'updated_at' => $this->updated_at,
             ];
