@@ -13,12 +13,94 @@ use Illuminate\Support\Facades\Validator;
 
 class SyncJobController extends Controller
 {
-    /**
-     * Store a new SyncJob record.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+    public function branchesLastSync()
+    {
+        $branches = Branch::all();
+        $result = [];
+        foreach ($branches as $branch) {
+            $lastSync = SyncJob::where('branch_id', $branch->id)
+                ->where('status', 'synced')
+                ->orderByDesc('created_at')
+                ->first();
+            $result[] = [
+                'branch_id' => $branch->id,
+                'branch_name' => $branch->name,
+                'last_sync_job_id' => $lastSync ? $lastSync->id : null,
+                'last_sync_time' => $lastSync ? $lastSync->created_at : null,
+            ];
+        }
+        return response()->json([
+            'message' => 'Branches with last sync info',
+            'data' => $result,
+        ], Response::HTTP_OK);
+    }
+
+    public function lastSyncJob()
+    {
+        $lastJob = SyncJob::where('status', 'synced')->orderByDesc('created_at')->first();
+        if (!$lastJob) {
+            return response()->json([
+                'message' => 'No synced jobs found',
+                'data' => null,
+            ], Response::HTTP_OK);
+        }
+        return response()->json([
+            'message' => 'Last synced job found',
+            'data' => [
+                'id' => $lastJob->id,
+                'synced_at' => $lastJob->created_at,
+            ],
+        ], Response::HTTP_OK);
+    }
+
+    public function filterSyncJobs(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'employee_id' => 'nullable|integer|exists:employees,id',
+            'employeeName' => 'nullable|string|max:255',
+            'from' => 'nullable|date_format:Y-m-d',
+            'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => $validator->errors()->first(),
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $query = SyncJob::query();
+
+        if ($request->has('branch_id')) {
+            $query->where('branch_id', $request->input('branch_id'));
+        }
+        if ($request->has('employee_id')) {
+            $query->where('employee_id', $request->input('employee_id'));
+        }
+        if ($request->has('employeeName')) {
+            $query->where('employeeName', 'like', '%' . $request->input('employeeName') . '%');
+        }
+        if ($request->has('from') && $request->input('from')) {
+            $query->whereDate('created_at', '>=', $request->input('from'));
+        }
+        if ($request->has('to') && $request->input('to')) {
+            $query->whereDate('created_at', '<=', $request->input('to'));
+        }
+
+        $jobs = $query->get();
+        $total_photos = $jobs->sum('number_of_photos');
+        $total_money = $jobs->sum('pay_amount');
+
+        return response()->json([
+            'message' => 'Filtered sync jobs',
+            'data' => [
+                'jobs' => SyncJobResource::collection($jobs),
+                'total_photos' => $total_photos,
+                'total_money' => $total_money,
+            ],
+        ], Response::HTTP_OK);
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -57,12 +139,6 @@ class SyncJobController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    /**
-     * Retrieve SyncJob statistics, optionally filtered by branch_id.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function statistics(Request $request)
     {
         if (!$request->user()->is_admin) {
@@ -72,7 +148,6 @@ class SyncJobController extends Controller
         }
 
         $query = SyncJob::query();
-
 
         if ($request->has('branch_id')) {
             $validator = Validator::make($request->all(), [
@@ -88,7 +163,6 @@ class SyncJobController extends Controller
             $query->where('branch_id', $request->input('branch_id'));
         }
 
-        // Use a separate query for status_breakdown to avoid affecting the main query
         $statusQuery = SyncJob::query();
         if ($request->has('branch_id')) {
             $statusQuery->where('branch_id', $request->input('branch_id'));
@@ -108,11 +182,6 @@ class SyncJobController extends Controller
         ], Response::HTTP_OK);
     }
 
-    /**
-     * Create a new branch.
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function createBranch(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -146,14 +215,8 @@ class SyncJobController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    /**
-     * List all branches.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function listBranches()
     {
-        // $branches = Branch::select('id', 'name')->get()
         $branches = Branch::all();
 
         return response()->json([

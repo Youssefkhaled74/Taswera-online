@@ -7,12 +7,16 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     // Route::post('/sync-jobs', [SyncJobController::class, 'store']);
     Route::get('/sync-jobs/statistics', [SyncJobController::class, 'statistics']);
     Route::post('/branches', [SyncJobController::class, 'createBranch']);
     Route::get('/branches', [SyncJobController::class, 'listBranches']);
+    Route::get('/sync/last', [SyncJobController::class, 'lastSyncJob']);
+    Route::get('/sync/filter', [SyncJobController::class, 'filterSyncJobs']);
+    Route::get('/branches/last-sync', [SyncJobController::class, 'branchesLastSync']);
 });
 
 
