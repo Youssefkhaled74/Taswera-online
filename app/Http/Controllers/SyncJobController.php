@@ -23,6 +23,7 @@ class SyncJobController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'branch_id' => 'required|integer|exists:branches,id',
+            'employee_id' => 'nullable|integer|exists:employees,id',
             'employeeName' => 'required|string|max:255',
             'pay_amount' => 'required|numeric|min:0',
             'orderprefixcode' => 'required|string|max:50',
@@ -40,6 +41,7 @@ class SyncJobController extends Controller
 
         $syncJob = SyncJob::create([
             'branch_id' => $request->input('branch_id'),
+            'employee_id' => $request->input('employee_id'),
             'employeeName' => $request->input('employeeName'),
             'pay_amount' => $request->input('pay_amount'),
             'orderprefixcode' => $request->input('orderprefixcode'),
@@ -70,7 +72,7 @@ class SyncJobController extends Controller
         }
 
         $query = SyncJob::query();
-        
+
 
         if ($request->has('branch_id')) {
             $validator = Validator::make($request->all(), [

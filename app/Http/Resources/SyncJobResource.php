@@ -7,18 +7,24 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class SyncJobResource extends JsonResource
 {
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
             'branch_id' => $this->branch_id,
+            'employee_id' => $this->employee_id,
             'employeeName' => $this->employeeName,
             'pay_amount' => (float) $this->pay_amount,
             'orderprefixcode' => $this->orderprefixcode,
             'status' => $this->status,
             'shift_name' => $this->shift_name,
             'orderphone' => $this->orderphone,
-            'number_of_photos' => $this->number_of_photos,
+            'number_of_photos' => (int) $this->number_of_photos,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
