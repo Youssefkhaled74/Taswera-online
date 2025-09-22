@@ -17,6 +17,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sync/last', [SyncJobController::class, 'lastSyncJob']);
     Route::get('/sync/filter', [SyncJobController::class, 'filterSyncJobs']);
     Route::get('/branches/last-sync', [SyncJobController::class, 'branchesLastSync']);
+    Route::get('/employees', [SyncJobController::class, 'listEmployees']);
 });
 
 

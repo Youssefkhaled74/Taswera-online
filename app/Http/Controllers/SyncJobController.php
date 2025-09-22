@@ -81,22 +81,46 @@ class SyncJobController extends Controller
             $query->where('employeeName', 'like', '%' . $request->input('employeeName') . '%');
         }
         if ($request->has('from') && $request->input('from')) {
-            $query->whereDate('created_at', '>=', $request->input('from'));
-        }
-        if ($request->has('to') && $request->input('to')) {
-            $query->whereDate('created_at', '<=', $request->input('to'));
+            if ($request->has('to') && $request->input('to')) {
+                // Filter by date range if both from and to are provided
+                $query->whereDate('created_at', '>=', $request->input('from'))
+                    ->whereDate('created_at', '<=', $request->input('to'));
+            } else {
+                // Filter by exact date if only from is provided
+                $query->whereDate('created_at', $request->input('from'));
+            }
         }
 
         $jobs = $query->get();
         $total_photos = $jobs->sum('number_of_photos');
         $total_money = $jobs->sum('pay_amount');
 
+        // Calculate employee photos summary
+        $employeePhotosSummary = $query->selectRaw('employee_id, branch_id, employeeName, SUM(number_of_photos) as total_photos')
+            ->groupBy('employee_id', 'branch_id', 'employeeName')
+            ->get()
+            ->groupBy(function ($item) {
+                // Group by employee_id and branch_id when employee_id is not null
+                // Otherwise, group by employeeName and branch_id
+                return $item->employee_id ? "emp_{$item->employee_id}_{$item->branch_id}" : "name_{$item->employeeName}_{$item->branch_id}";
+            })
+            ->map(function ($group) {
+                $item = $group->first();
+                return [
+                    'employee_id' => $item->employee_id,
+                    'branch_id' => $item->branch_id,
+                    'employeeName' => $item->employeeName,
+                    'total_photos' => (int) $group->sum('total_photos'),
+                ];
+            })->values()->toArray();
+
         return response()->json([
             'message' => 'Filtered sync jobs',
             'data' => [
                 'jobs' => SyncJobResource::collection($jobs),
-                'total_photos' => $total_photos,
-                'total_money' => $total_money,
+                'total_photos' => (int) $total_photos,
+                'total_money' => (float) $total_money,
+                'employee_photos_summary' => $employeePhotosSummary,
             ],
         ], Response::HTTP_OK);
     }
@@ -222,6 +246,39 @@ class SyncJobController extends Controller
         return response()->json([
             'message' => 'Branches retrieved successfully',
             'data' => BranchResource::collection($branches),
+        ], Response::HTTP_OK);
+    }
+
+    public function listEmployees(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'branch_id' => 'nullable|integer|exists:branches,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => $validator->errors()->first(),
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $query = SyncJob::query()->select('employee_id', 'branch_id', 'employeeName')
+            ->distinct('employee_id', 'branch_id');
+
+        if ($request->has('branch_id')) {
+            $query->where('branch_id', $request->input('branch_id'));
+        }
+
+        $employees = $query->get()->map(function ($item) {
+            return [
+                'employee_id' => $item->employee_id,
+                'branch_id' => $item->branch_id,
+                'employeeName' => $item->employeeName,
+            ];
+        })->values()->toArray();
+
+        return response()->json([
+            'message' => 'Employees retrieved successfully',
+            'data' => $employees,
         ], Response::HTTP_OK);
     }
 }
